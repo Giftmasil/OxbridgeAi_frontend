@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import PropTypes from 'prop-types';
 import { Calendar } from "@/components/ui/calendar";
 import {
@@ -28,14 +27,16 @@ const scheduleItemPropType = PropTypes.shape({
   date: PropTypes.string.isRequired,
 });
 
-const CalendarSchedule = ({ scheduleData, onScoreStartup }) => {
-  const [selectedDate, setSelectedDate] = useState(new Date());
-
+const CalendarSchedule = ({ scheduleData, onScoreStartup, selectedDate, onDateSelect }) => {
   const getScheduleTitle = (date) => {
     if (isToday(date)) return "Today's Schedule";
     if (isTomorrow(date)) return "Tomorrow's Schedule";
     if (isYesterday(date)) return "Yesterday's Schedule";
     return `Schedule for ${format(date, 'MMMM d, yyyy')}`;
+  };
+
+  const handleDateSelect = (date) => {
+    onDateSelect(date || new Date());
   };
 
   const filteredSchedule = scheduleData.filter(schedule => {
@@ -65,7 +66,7 @@ const CalendarSchedule = ({ scheduleData, onScoreStartup }) => {
               <Calendar
                 mode="single"
                 selected={selectedDate}
-                onSelect={(date) => setSelectedDate(date || new Date())}
+                onSelect={handleDateSelect}
                 initialFocus
                 className="bg-[#282828]"
                 classNames={{
@@ -140,6 +141,8 @@ const CalendarSchedule = ({ scheduleData, onScoreStartup }) => {
 CalendarSchedule.propTypes = {
   scheduleData: PropTypes.arrayOf(scheduleItemPropType).isRequired,
   onScoreStartup: PropTypes.func.isRequired,
+  selectedDate: PropTypes.instanceOf(Date).isRequired,
+  onDateSelect: PropTypes.func.isRequired,
 };
 
 export default CalendarSchedule;

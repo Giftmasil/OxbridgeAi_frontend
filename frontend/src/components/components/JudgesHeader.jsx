@@ -1,7 +1,8 @@
-// JudgesHeader.jsx
 import { Card, CardTitle } from "@/components/ui/card";
 import PropTypes from 'prop-types';
 import Navbar from "./Navbar";
+import { useEffect, useState } from "react";
+import { format, isToday, isYesterday, isTomorrow } from "date-fns";
 
 const StatCard = ({ title, value, subtitle }) => {
   return (
@@ -24,7 +25,43 @@ StatCard.propTypes = {
   subtitle: PropTypes.string.isRequired,
 };
 
-export default function JudgesHeader({ activeTab }) {    
+export default function JudgesHeader({ activeTab, selectedDate = new Date(), scheduleData = [] }) {    
+    const [totalScheduleCount, setTotalScheduleCount] = useState(0);
+    const [evaluationsCount, setEvaluationsCount] = useState(0);
+    const [todayScheduleCount, setTodayScheduleCount] = useState(0);
+
+    const getScheduleTitle = (date) => {
+        if (isToday(date)) return "Today's Schedule";
+        if (isTomorrow(date)) return "Tomorrow's Schedule";
+        if (isYesterday(date)) return "Yesterday's Schedule";
+        return `Schedule for ${format(date, 'MMMM d, yyyy')}`;
+    };
+
+    useEffect(() => {
+        // Get evaluations count from localStorage
+        const storedEvaluations = localStorage.getItem("evaluationsData");
+        if (storedEvaluations) {
+            const evaluations = JSON.parse(storedEvaluations);
+            setEvaluationsCount(evaluations.length);
+        }
+
+        // Calculate schedule counts
+        setTotalScheduleCount(scheduleData.length);
+
+        // Count today's schedules
+        const today = new Date();
+        const todaySchedules = scheduleData.filter(schedule => 
+            new Date(schedule.date).toDateString() === today.toDateString()
+        );
+        setTodayScheduleCount(todaySchedules.length);
+
+    }, [scheduleData]);
+
+    // Get selected date schedule count
+    const selectedDateSchedules = scheduleData.filter(schedule => 
+        new Date(schedule.date).toDateString() === selectedDate.toDateString()
+    );
+
     return (
         <div className="text-white">
             <article>
@@ -33,30 +70,30 @@ export default function JudgesHeader({ activeTab }) {
             <div className="container mx-auto p-6">
                 <div className="mb-6">
                     <h1 className="text-2xl font-bold text-white">
-                        {activeTab === "dashboard" ? "Judge Dashboard" : activeTab === "scoring" ? "Scoring" : "Evaluation History"}
+                        {activeTab === "dashboard" ? "Hero Dashboard" : activeTab === "scoring" ? "Scoring" : "Evaluation History"}
                     </h1>
                 </div>
 
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
                     <StatCard 
                         title="Assigned Startups"
-                        value="24" 
-                        subtitle="4 remaining today"
+                        value={totalScheduleCount.toString()}
+                        subtitle={`${todayScheduleCount} scheduled today`}
                     />
                     <StatCard 
                         title="Next Pitch"
-                        value="8" 
-                        subtitle="All assigned"
+                        value="--" 
+                        subtitle="Check calendar for details"
                     />
                     <StatCard
-                        title="Todays schedule" 
-                        value="12" 
-                        subtitle="Next 24 hours"
+                        title={getScheduleTitle(selectedDate)}
+                        value={selectedDateSchedules.length.toString()}
+                        subtitle="View in calendar below"
                     />
                     <StatCard 
                         title="Completed Evaluations"
-                        value="8" 
-                        subtitle="2 Pending Review"
+                        value={evaluationsCount.toString()} 
+                        subtitle={`${totalScheduleCount} pending reviews`}
                     />
                 </div>
             </div>
@@ -66,4 +103,8 @@ export default function JudgesHeader({ activeTab }) {
 
 JudgesHeader.propTypes = {
     activeTab: PropTypes.string.isRequired,
+    selectedDate: PropTypes.instanceOf(Date),
+    scheduleData: PropTypes.arrayOf(PropTypes.shape({
+        date: PropTypes.string.isRequired,
+    })),
 };
