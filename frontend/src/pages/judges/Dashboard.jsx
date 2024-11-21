@@ -190,6 +190,7 @@ export default function Dashboard() {
   const [activeTab, setActiveTab] = useState("dashboard");
   const [scheduleData, setScheduleData] = useState([]);
   const [evaluationsData, setEvaluationsData] = useLocalStorageData("evaluationsData", initialEvaluationsData);
+  const [selectedDate, setSelectedDate] = useState(new Date());
   
   useEffect(() => {
     const loadData = async () => {
@@ -218,7 +219,11 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-[#171717]">
-      <JudgesHeader activeTab={activeTab} />
+      <JudgesHeader 
+        activeTab={activeTab} 
+        selectedDate={selectedDate}
+        scheduleData={scheduleData}
+      />
       
       <main className="container mx-auto p-6">
         <Tabs 
@@ -245,7 +250,9 @@ export default function Dashboard() {
               onScoreStartup={(id) => {
                 setActiveTab("scoring");
                 navigate(`/dashboard/score/${id}`);
-              }} 
+              }}
+              selectedDate={selectedDate}
+              onDateSelect={setSelectedDate}
             />
           </TabsContent>
 
