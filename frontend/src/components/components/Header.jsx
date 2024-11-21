@@ -17,15 +17,18 @@ import logo from "../../assets/image 2.png";
 import { Link, useNavigate } from "react-router-dom"; // Import Link for routing
 import { Button } from "../ui/button";
 import PropTypes from 'prop-types';
+import { useDispatch } from "react-redux";
+import { logout } from "@/redux/slices/AuthenticationSlice";
 
 
 
 const Navbar = () => {
 
   const navigate = useNavigate()
+  const dispatch = useDispatch()
 
   const LogOut = () => {
-    localStorage.clear()
+    dispatch(logout())
     navigate("/login")
   }
   return (

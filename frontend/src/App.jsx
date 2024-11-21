@@ -1,36 +1,70 @@
-import { useEffect, useState } from "react";
 import { Routes, Route, Navigate, HashRouter } from "react-router-dom";
+import { useDispatch, useSelector } from 'react-redux';
+import PropTypes from 'prop-types';
 import Login from "./pages/login/Login";
 import Signup from "./pages/login/SignUp";
-import Dashboard from "./pages/judges/Dashboard";
+import JudgesDashboard from "./pages/judges/Dashboard";
+import AdminDashboard from "./pages/admin/DashBoard";
 import Score from "./pages/judges/Score";
-import "./App.css"
+import "./App.css";
+import { useEffect } from "react";
+import { checkAuthState } from "./redux/slices/AuthenticationSlice";
+
+// Role-based route guard component
+const ProtectedRoute = ({ children, allowedRole, redirectPath = "/login" }) => {
+  const { isAuthenticated, role } = useSelector((state) => state.auth);
+
+  if (!isAuthenticated) {
+    return <Navigate to={redirectPath} replace />;
+  }
+
+  if (allowedRole && role !== allowedRole) {
+    return <Navigate to={`/${role === 'admin' ? 'admin' : ''}/dashboard`} replace />;
+  }
+
+  return children;
+};
+
+const PublicRoute = ({ children }) => {
+  const { isAuthenticated, role } = useSelector((state) => state.auth);
+
+  if (isAuthenticated) {
+    return <Navigate to={role === 'admin' ? '/admin/dashboard' : '/dashboard'} replace />;
+  }
+
+  return children;
+};
+
+ProtectedRoute.propTypes = {
+  children: PropTypes.node.isRequired,
+  allowedRole: PropTypes.oneOf(['admin', 'judge']),
+  redirectPath: PropTypes.string
+};
+
+PublicRoute.propTypes = {
+  children: PropTypes.node.isRequired
+};
 
 function App() {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
+  const dispatch = useDispatch();
+  const { isAuthenticated, role } = useSelector((state) => state.auth);
 
   useEffect(() => {
-    const checkAuth = () => {
-      const token = localStorage.getItem("isAuthenticated") === "true";
-      setIsAuthenticated(token);
-      setIsLoading(false);
-    };
-    checkAuth();
-  }, []);
-
-  if (isLoading) {
-    return <div>Loading...</div>; // Or your loading component
-  }
+    dispatch(checkAuthState());
+  }, [dispatch]);
 
   return (
     <HashRouter>
       <Routes>
+        {/* Public Routes */}
         <Route
           path="/"
           element={
             isAuthenticated ? (
-              <Navigate to="/dashboard" replace />
+              <Navigate 
+                to={role === 'admin' ? '/admin/dashboard' : '/dashboard'} 
+                replace 
+              />
             ) : (
               <Navigate to="/login" replace />
             )
@@ -39,44 +73,60 @@ function App() {
         <Route
           path="/login"
           element={
-            isAuthenticated ? (
-              <Navigate to="/dashboard" replace />
-            ) : (
-              <Login setIsAuthenticated={setIsAuthenticated} />
-            )
+            <PublicRoute>
+              <Login />
+            </PublicRoute>
           }
         />
         <Route
           path="/signup"
           element={
-            isAuthenticated ? (
-              <Navigate to="/dashboard" replace />
-            ) : (
+            <PublicRoute>
               <Signup />
-            )
+            </PublicRoute>
           }
         />
+
+        {/* Judge Routes */}
         <Route
           path="/dashboard"
           element={
-            isAuthenticated ? (
-              <Dashboard />
-            ) : (
-              <Navigate to="/login" replace />
-            )
+            <ProtectedRoute allowedRole="judge">
+              <JudgesDashboard />
+            </ProtectedRoute>
           }
         />
         <Route
-          path="/dashboard/score/:id" 
+          path="/dashboard/score/:id"
           element={
-            isAuthenticated ? (
+            <ProtectedRoute allowedRole="judge">
               <Score />
-            ) : (
-              <Navigate to="/login" replace />
-            )
+            </ProtectedRoute>
           }
         />
-        <Route path="*" element={<Navigate to="/" replace />} />
+
+        {/* Admin Routes */}
+        <Route
+          path="/admin/dashboard"
+          element={
+            <ProtectedRoute allowedRole="admin">
+              <AdminDashboard />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Catch all route */}
+        <Route 
+          path="*" 
+          element={
+            <Navigate 
+              to={isAuthenticated ? 
+                (role === 'admin' ? '/admin/dashboard' : '/dashboard') 
+                : '/login'} 
+              replace 
+            />
+          } 
+        />
       </Routes>
     </HashRouter>
   );
