@@ -57,7 +57,7 @@ const CalendarSchedule = ({ scheduleData, onScoreStartup }) => {
                 size="default"
                 className="bg-[#404040] border-0 hover:bg-[#333333]"
               >
-                <span className='text-white'>Date Modified</span>
+                <span className='text-white'>Pick A Date</span>
                 <ChevronDown className="h-4 w-4 text-white" />
               </Button>
             </PopoverTrigger>
@@ -98,7 +98,7 @@ const CalendarSchedule = ({ scheduleData, onScoreStartup }) => {
         <Table className="bg-[#F3F4F6] rounded-lg">
           <TableHeader>
             <TableRow>
-              <TableHead>Startup</TableHead>
+              <TableHead>Startup ID</TableHead>
               <TableHead>Start time</TableHead>
               <TableHead>End Time</TableHead>
               <TableHead>Room</TableHead>
@@ -109,14 +109,14 @@ const CalendarSchedule = ({ scheduleData, onScoreStartup }) => {
             {filteredSchedule.length > 0 ? (
               filteredSchedule.map((schedule) => (
                 <TableRow key={schedule.id}>
-                  <TableCell>{schedule.startup}</TableCell>
+                  <TableCell>{schedule.startupId}</TableCell>
                   <TableCell>{schedule.startTime}</TableCell>
                   <TableCell>{schedule.endTime}</TableCell>
                   <TableCell>{schedule.room}</TableCell>
                   <TableCell>
                     <Button 
                       className="bg-[#282828] text-white hover:bg-[#282828] hover:opacity-90"
-                      onClick={() => onScoreStartup(schedule.id)}
+                      onClick={() => onScoreStartup(schedule.startupId)}
                     >
                       Score Startup
                     </Button>

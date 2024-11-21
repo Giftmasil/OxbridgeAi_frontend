@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { useDispatch, useSelector } from 'react-redux';
+import { useNavigate } from "react-router-dom";
 import {
   FormControl,
   FormLabel,
@@ -9,30 +11,22 @@ import {
   useToast,
   Link,
 } from "@chakra-ui/react";
-import { useNavigate } from "react-router-dom";
-import PropTypes from "prop-types";
+import { login } from "@/redux/slices/AuthenticationSlice";
 import AuthLayout from "../../components/components/authLayout";
-import loginImage from "../../assets/oxbridgeAI.jpeg"; // Replace with your image path
+import loginImage from "../../assets/oxbridgeAI.jpeg";
 
-const LoginPage = ({ setIsAuthenticated }) => {
+const LoginPage = () => {
+  const dispatch = useDispatch();
   const navigate = useNavigate();
   const toast = useToast();
+  
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
-  const handleLogin = () => {
-    if (email && password) {
-      localStorage.setItem("isAuthenticated", "true");
-      setIsAuthenticated(true); // Update authentication state
-      toast({
-        title: "Login Successful",
-        description: "Welcome back!",
-        status: "success",
-        duration: 3000,
-        isClosable: true,
-      });
-      navigate("/dashboard");
-    } else {
+  const { loading, error } = useSelector((state) => state.auth);
+
+  const handleLogin = async () => {
+    if (!email || !password) {
       toast({
         title: "Login Failed",
         description: "Please provide both email and password.",
@@ -40,6 +34,36 @@ const LoginPage = ({ setIsAuthenticated }) => {
         duration: 3000,
         isClosable: true,
       });
+      return;
+    }
+
+    try {
+      const resultAction = await dispatch(login({ email, password })).unwrap();
+      
+      toast({
+        title: "Login Successful",
+        description: `Welcome back!`,
+        status: "success",
+        duration: 3000,
+        isClosable: true,
+      });
+
+      navigate(resultAction.role === "admin" ? "/admin/dashboard" : "/dashboard");
+    } catch (err) {
+      toast({
+        title: "Login Failed",
+        description: err.message || "Please check your credentials and try again",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+    }
+  };
+
+  const handleKeyDown = (event) => {
+    if (event.key === 'Enter') {
+      event.preventDefault(); // Prevent default form submission
+      handleLogin();
     }
   };
 
@@ -56,6 +80,7 @@ const LoginPage = ({ setIsAuthenticated }) => {
             placeholder="Enter your email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
+            onKeyDown={handleKeyDown}
           />
         </FormControl>
         <FormControl isRequired>
@@ -65,29 +90,34 @@ const LoginPage = ({ setIsAuthenticated }) => {
             placeholder="Enter your password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
+            onKeyDown={handleKeyDown}
           />
         </FormControl>
         <Button
-          color="white" bg="black"
+          color="white"
+          bg="black"
+          _hover={{ bg: "gray.800" }}
           size="lg"
           width="100%"
           onClick={handleLogin}
+          isLoading={loading}
         >
           Log In
         </Button>
+        {error && (
+          <Text color="red.500" fontSize="sm" textAlign="center">
+            {error}
+          </Text>
+        )}
         <Text fontSize="sm" textAlign="center">
           Don&apos;t have an account?{" "}
-          <Link color="blue.500" href="/signup">
+          <Link color="blue.500" href="#/signup">
             Sign up
           </Link>
         </Text>
       </VStack>
     </AuthLayout>
   );
-};
-
-LoginPage.propTypes = {
-  setIsAuthenticated: PropTypes.func.isRequired,
 };
 
 export default LoginPage;

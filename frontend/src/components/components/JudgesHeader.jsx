@@ -1,7 +1,7 @@
 // JudgesHeader.jsx
-import Navbar from "./Header";
 import { Card, CardTitle } from "@/components/ui/card";
 import PropTypes from 'prop-types';
+import Navbar from "./Navbar";
 
 const StatCard = ({ title, value, subtitle }) => {
   return (
@@ -24,14 +24,11 @@ StatCard.propTypes = {
   subtitle: PropTypes.string.isRequired,
 };
 
-export default function JudgesHeader({ activeTab }) {
-    const tagContent = "Judge";
-    const menuItems = [];
-    
+export default function JudgesHeader({ activeTab }) {    
     return (
         <div className="text-white">
             <article>
-                <Navbar tagContent={tagContent} menuItems={menuItems} />
+                <Navbar />
             </article>
             <div className="container mx-auto p-6">
                 <div className="mb-6">

@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const axiosInstance = axios.create({
-    baseURL: 'https://team-tuki-3.onrender.com/',
+    baseURL: 'https://backend-j7ru.onrender.com',
 });
 
 axiosInstance.interceptors.request.use(
