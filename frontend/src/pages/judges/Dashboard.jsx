@@ -17,30 +17,6 @@ import CalendarSchedule from "@/components/components/CalenderSchedule"
 import axiosInstance from "@/redux/axiosInstance"
 import { useSelector } from "react-redux"
 
-/* const initialScheduleData = [
-  // Today's schedule (Nov 20, 2024)
-  { id: "s1", startup: "DataViz AI", startTime: "09:00", endTime: "09:15", room: "Room A", date: "2024-11-20" },
-  { id: "s2", startup: "AI Analytics", startTime: "10:30", endTime: "10:45", room: "Room B", date: "2024-11-20" },
-  { id: "s3", startup: "Neural Systems", startTime: "11:15", endTime: "11:30", room: "Room A", date: "2024-11-20" },
-  
-  // Tomorrow's schedule (Nov 21, 2024)
-  { id: "s4", startup: "ML Solutions", startTime: "13:00", endTime: "13:15", room: "Room C", date: "2024-11-21" },
-  { id: "s5", startup: "Deep Learning Co", startTime: "14:20", endTime: "14:35", room: "Room B", date: "2024-11-21" },
-  
-  // Yesterday's schedule (Nov 19, 2024)
-  { id: "s6", startup: "AI Vision Corp", startTime: "15:00", endTime: "15:15", room: "Room A", date: "2024-11-19" },
-  { id: "s7", startup: "Tech Innovators", startTime: "15:45", endTime: "16:00", room: "Room C", date: "2024-11-19" },
-  
-  // Future dates
-  { id: "s8", startup: "Data Minds", startTime: "16:30", endTime: "16:45", room: "Room B", date: "2024-11-25" },
-  { id: "s9", startup: "Smart Systems", startTime: "17:15", endTime: "17:30", room: "Room A", date: "2024-11-25" }
-].sort((a, b) => {
-  const timeA = a.startTime.split(':').map(Number);
-  const timeB = b.startTime.split(':').map(Number);
-  if (timeA[0] !== timeB[0]) return timeA[0] - timeB[0];
-  return timeA[1] - timeB[1];
-}); */
-
 // Also update evaluation dates
 const initialEvaluationsData = [
   { id: "e1", company: "AI Vision Corp", date: "2024-11-19", score: 4.5, nominated: true, toBeMentored: false, meetStartup: false },
@@ -50,8 +26,6 @@ const initialEvaluationsData = [
   { id: "e5", company: "AI Analytics", date: "2024-11-20", score: 4.5, nominated: false, toBeMentored: false, meetStartup: true },
   { id: "e6", company: "Neural Systems", date: "2024-11-20", score: 4.5, nominated: true, toBeMentored: false, meetStartup: false }
 ];
-
-
 
 // Helper function to convert 12-hour format to 24-hour format for sorting
 const convertTo24Hour = (time12h) => {
@@ -110,16 +84,6 @@ const transformScheduleData = (apiData) => {
   });
 };
 
-
-// Define prop types for schedule data
-const scheduleItemPropType = PropTypes.shape({
-  id: PropTypes.string.isRequired,
-  startup: PropTypes.string.isRequired,
-  startTime: PropTypes.string.isRequired,
-  endTime: PropTypes.string.isRequired,
-  room: PropTypes.string.isRequired,
-});
-
 // Define prop types for evaluation data
 const evaluationItemPropType = PropTypes.shape({
   id: PropTypes.string.isRequired,
@@ -153,68 +117,8 @@ const useLocalStorageData = (key, initialData) => {
   return [data, setData];
 };
 
-const ScheduleTable = ({ scheduleData, setActiveTab }) => {
-  const navigate = useNavigate();
-
-  const handleScoreStartup = (startupId) => {
-    setActiveTab("scoring")
-    navigate(`/dashboard/score/${startupId}`);
-  };
-
-  return (
-    <Card className="p-4 bg-[#242424] flex justify-center items-center w-full">
-      <div className="w-10/12">
-        <h2 className="text-2xl font-semibold mb-4 text-[#F8FAF7]">Today&apos;s Schedule</h2>
-        <Table className="bg-[#F3F4F6] rounded-lg">
-          <TableHeader>
-            <TableRow>
-              <TableHead>Startup ID</TableHead>
-              <TableHead>Start time</TableHead>
-              <TableHead>End Time</TableHead>
-              <TableHead>Room</TableHead>
-              <TableHead>Action</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody className="font-medium bg-[#404040] text-[#F8FAF7]">
-            {scheduleData && scheduleData.length > 0 ? (
-              scheduleData.map((schedule) => (
-                <TableRow key={schedule.id}>
-                  <TableCell>{schedule.startupId}</TableCell>
-                  <TableCell>{schedule.startTime}</TableCell>
-                  <TableCell>{schedule.endTime}</TableCell>
-                  <TableCell>{schedule.room}</TableCell>
-                  <TableCell>
-                    <Button 
-                      className="bg-[#282828] text-white hover:bg-[#282828] hover:opacity-90"
-                      onClick={() => handleScoreStartup(schedule.startupId)}
-                    >
-                      Score Startup
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))
-            ) : (
-              <TableRow>
-                <TableCell colSpan={5} className="text-center py-4">
-                  <p className="text-muted-foreground">No schedules for today</p>
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
-      </div> 
-    </Card>
-  );
-};
-
-
-ScheduleTable.propTypes = {
-  scheduleData: PropTypes.arrayOf(scheduleItemPropType).isRequired,
-  setActiveTab: PropTypes.func.isRequired
-};
-
 const PastEvaluations = ({ evaluationsData }) => (
-  <Card className="p-4 bg-[#242424] text-[#F8FAF7]">
+  <Card className="p-4 bg-[#242424] text-[#F8FAF7] border-0">
     <h2 className="text-lg font-semibold mb-4">Past Evaluations</h2>
     <Table className="bg-white rounded-lg">
       <TableHeader>
@@ -303,7 +207,7 @@ export default function Dashboard() {
     };
 
     loadData();
-  }, [setEvaluationsData]);
+  }, [setEvaluationsData, userId]);
 
   const handleScoreNextStartup = () => {
     if (scheduleData.length > 0) {
