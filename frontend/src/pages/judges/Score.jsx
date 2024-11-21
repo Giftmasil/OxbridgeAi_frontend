@@ -11,7 +11,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import PropTypes from 'prop-types';
 import { useToast } from "@chakra-ui/react";
-import Navbar from "@/components/components/Header";
+import Navbar from "@/components/components/Navbar";
+import { useNavigate } from "react-router-dom";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faArrowLeft } from "@fortawesome/free-solid-svg-icons";
+import { Checkbox } from "@/components/ui/checkbox";
 
 // Define the initial state structure for a section
 const createInitialSectionState = (questions) => {
@@ -28,13 +32,16 @@ const createInitialSectionState = (questions) => {
 
 // Create initial state for all sections
 const createInitialFormState = (sections) => {
-    const initialState = {
-      overallFeedback: '',
-    };
-    sections.forEach(section => {
-      initialState[section.id] = createInitialSectionState(section.questions);
-    });
-    return initialState;
+  const initialState = {
+    overallFeedback: '',
+    nominateNextRound: false,
+    mentorStartup: false,
+    meetStartup: false
+  };
+  sections.forEach(section => {
+    initialState[section.id] = createInitialSectionState(section.questions);
+  });
+  return initialState;
 };
 
 
@@ -138,8 +145,8 @@ const ScoreSection = ({ questions, sectionId, formState, onScoreChange, onFeedba
           variant="secondary"
           className={`px-3 md:px-4 py-1.5 md:py-2 text-sm md:text-base rounded hover:bg-[#808080] ${
             isSkipped 
-              ? 'bg-[#282828] text-white' 
-              : 'bg-[#282828] text-white'
+              ? 'bg-[#282828] hover:bg-[#282828]/90 text-white' 
+              : 'bg-[#282828] bg-[#282828]/90 text-white'
           }`}
         >
           {isSkipped ? 'Skipped' : 'Skip'}
@@ -443,13 +450,16 @@ export default function Score() {
       });
 
       const submissionData = {
-          timestamp: new Date().toISOString(),
-          scoringTime: formatTime(time),
-          totalScore: Math.round(totalScore * 100) / 100,
-          overallFeedback: formState.overallFeedback,
-          sectionScores,
-          rawFormData: formState
-      };
+        timestamp: new Date().toISOString(),
+        scoringTime: formatTime(time),
+        totalScore: Math.round(totalScore * 100) / 100,
+        overallFeedback: formState.overallFeedback,
+        sectionScores,
+        nominateNextRound: formState.nominateNextRound,
+        mentorStartup: formState.mentorStartup,
+        meetStartup: formState.meetStartup,
+        rawFormData: formState
+    };
 
       console.log('Submission Data:', submissionData);
       
@@ -463,19 +473,98 @@ export default function Score() {
       });
   };
 
+  const handleNominationToggle = () => {
+    setFormState(prev => ({
+        ...prev,
+        nominateNextRound: !prev.nominateNextRound
+    }));
+  };
 
-    const tagContent = "Judge";
-    const menuItems = [];
+  const handleMentorToggle = () => {
+      setFormState(prev => ({
+          ...prev,
+          mentorStartup: !prev.mentorStartup
+      }));
+  };
+
+  const handleMeetToggle = () => {
+      setFormState(prev => ({
+          ...prev,
+          meetStartup: !prev.meetStartup
+      }));
+  };
+
+  const navigate = useNavigate()
+
+  const handleBack = () => {
+    navigate(-1)
+  }
 
     return (
-        <div className="min-h-screen bg-[#171717]">
-            <Navbar tagContent={tagContent} menuItems={menuItems} />
-            <div className="container mx-auto p-6">
+        <div className="min-h-screen bg-[#171717] w-full">
+            <Navbar />
+            <div className="w-full mx-auto p-6">
                 <Card className="p-6 bg-[#242424] border-0">
-                    <article className="w-full bg-[#242424] sticky top-0 flex flex-col md:flex-row justify-between items-center gap-7 p-7">
+                  <article>
+                    <Button className="text-[#2b44c4] flex justify-center items-center gap-2" variant="Link" onClick={()=> handleBack()}>
+                      <FontAwesomeIcon icon={faArrowLeft} />
+                      <div>
+                        Back
+                      </div>
+                    </Button>
+                  </article>
+                    <article className="w-full bg-[#242424] sticky top-0 flex flex-col lg:flex-row justify-between items-center gap-7 p-7">
                         <div>
                             <h1 className="text-4xl font-bold mb-3 text-[#f6f5f5]">AI Innovators</h1>
                             <p className="text-[#ddd6d6] font-semibold text-base">Pitch Scoring</p>
+                        </div>
+                        <div className="flex flex-col md:flex-row justify-center items-center gap-3">
+                        <div className="flex flex-col md:flex-row items-start gap-6">
+                          <div className="flex items-center space-x-2">
+                            <Checkbox 
+                              id="nominate" 
+                              checked={formState.nominateNextRound}
+                              onCheckedChange={handleNominationToggle}
+                              className="border-white data-[state=checked]:bg-[#387C80] data-[state=checked]:border-[#387C80]"
+                            />
+                            <label
+                              htmlFor="nominate"
+                              className="text-sm md:text-base font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 text-white"
+                            >
+                              Nominate for Next Round
+                            </label>
+                          </div>
+
+                          <div className="flex items-center space-x-2">
+                            <Checkbox 
+                              id="mentor" 
+                              checked={formState.mentorStartup}
+                              onCheckedChange={handleMentorToggle}
+                              className="border-white data-[state=checked]:bg-[#387C80] data-[state=checked]:border-[#387C80]"
+                            />
+                            <label
+                              htmlFor="mentor"
+                              className="text-sm md:text-base font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 text-white"
+                            >
+                              Mentor Startup
+                            </label>
+                          </div>
+
+                          <div className="flex items-center space-x-2">
+                            <Checkbox 
+                              id="meet" 
+                              checked={formState.meetStartup}
+                              onCheckedChange={handleMeetToggle}
+                              className="border-white data-[state=checked]:bg-[#387C80] data-[state=checked]:border-[#387C80]"
+                            />
+                            <label
+                              htmlFor="meet"
+                              className="text-sm md:text-base font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 text-white"
+                            >
+                              Meet Startup
+                            </label>
+                          </div>
+                        </div>
                         </div>
                         <div className="bg-[#242424]">
                             <ScoringTimer 
@@ -543,7 +632,7 @@ export default function Score() {
                         <div className="flex justify-end mt-6">
                             <Button 
                                 onClick={handleSubmit}
-                                className="bg-[#00A3FF] text-white px-6 py-2 rounded-lg hover:bg-[#00A3FF]/90"
+                                className="bg-[#FFBF00] text-white px-6 py-2 rounded-lg hover:bg-[#FFBF00]/90"
                             >
                                 Submit Scores
                             </Button>

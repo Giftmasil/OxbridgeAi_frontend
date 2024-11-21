@@ -14,8 +14,10 @@ import { useState, useEffect } from "react"
 import PropTypes from 'prop-types'
 import { useNavigate } from "react-router-dom"
 import CalendarSchedule from "@/components/components/CalenderSchedule"
+import axiosInstance from "@/redux/axiosInstance"
+import { useSelector } from "react-redux"
 
-const initialScheduleData = [
+/* const initialScheduleData = [
   // Today's schedule (Nov 20, 2024)
   { id: "s1", startup: "DataViz AI", startTime: "09:00", endTime: "09:15", room: "Room A", date: "2024-11-20" },
   { id: "s2", startup: "AI Analytics", startTime: "10:30", endTime: "10:45", room: "Room B", date: "2024-11-20" },
@@ -37,7 +39,7 @@ const initialScheduleData = [
   const timeB = b.startTime.split(':').map(Number);
   if (timeA[0] !== timeB[0]) return timeA[0] - timeB[0];
   return timeA[1] - timeB[1];
-});
+}); */
 
 // Also update evaluation dates
 const initialEvaluationsData = [
@@ -48,6 +50,66 @@ const initialEvaluationsData = [
   { id: "e5", company: "AI Analytics", date: "2024-11-20", score: 4.5, nominated: false, toBeMentored: false, meetStartup: true },
   { id: "e6", company: "Neural Systems", date: "2024-11-20", score: 4.5, nominated: true, toBeMentored: false, meetStartup: false }
 ];
+
+
+
+// Helper function to convert 12-hour format to 24-hour format for sorting
+const convertTo24Hour = (time12h) => {
+  // Handle the case where time is already in 24-hour format
+  if (!time12h.includes('AM') && !time12h.includes('PM')) {
+    return time12h;
+  }
+
+  const [time, modifier] = time12h.split(' ');
+  let [hours, minutes] = time.split(':');
+  
+  // Convert hours to number for calculation
+  hours = parseInt(hours, 10);
+  
+  if (modifier === 'PM' && hours < 12) {
+    hours = hours + 12;
+  }
+  if (modifier === 'AM' && hours === 12) {
+    hours = 0;
+  }
+  
+  // Convert back to string and pad
+  return `${String(hours).padStart(2, '0')}:${minutes}`;
+};
+
+
+const transformScheduleData = (apiData) => {
+  return apiData.map(item => {
+    // Convert API date format to match the expected format
+    const dateObj = new Date(item.date);
+    const formattedDate = dateObj.toISOString().split('T')[0];
+
+    return {
+      id: item._id,
+      startupId: item.startupId, 
+      startup: item.startupId,
+      startTime: item.startTime,
+      endTime: item.endTime,
+      room: item.room,
+      date: formattedDate
+    };
+  }).sort((a, b) => {
+    // First sort by date
+    if (a.date !== b.date) {
+      return new Date(a.date) - new Date(b.date);
+    }
+    // Then sort by time
+    try {
+      const timeA = convertTo24Hour(a.startTime);
+      const timeB = convertTo24Hour(b.startTime);
+      return timeA.localeCompare(timeB);
+    } catch (error) {
+      console.error('Error sorting times:', error);
+      return 0; // Keep original order if there's an error
+    }
+  });
+};
+
 
 // Define prop types for schedule data
 const scheduleItemPropType = PropTypes.shape({
@@ -94,9 +156,9 @@ const useLocalStorageData = (key, initialData) => {
 const ScheduleTable = ({ scheduleData, setActiveTab }) => {
   const navigate = useNavigate();
 
-  const handleScoreStartup = (id) => {
+  const handleScoreStartup = (startupId) => {
     setActiveTab("scoring")
-    navigate(`/dashboard/score/${id}`);
+    navigate(`/dashboard/score/${startupId}`);
   };
 
   return (
@@ -106,7 +168,7 @@ const ScheduleTable = ({ scheduleData, setActiveTab }) => {
         <Table className="bg-[#F3F4F6] rounded-lg">
           <TableHeader>
             <TableRow>
-              <TableHead>Startup</TableHead>
+              <TableHead>Startup ID</TableHead>
               <TableHead>Start time</TableHead>
               <TableHead>End Time</TableHead>
               <TableHead>Room</TableHead>
@@ -114,17 +176,17 @@ const ScheduleTable = ({ scheduleData, setActiveTab }) => {
             </TableRow>
           </TableHeader>
           <TableBody className="font-medium bg-[#404040] text-[#F8FAF7]">
-            {scheduleData.length > 0 ? (
+            {scheduleData && scheduleData.length > 0 ? (
               scheduleData.map((schedule) => (
                 <TableRow key={schedule.id}>
-                  <TableCell>{schedule.startup}</TableCell>
+                  <TableCell>{schedule.startupId}</TableCell>
                   <TableCell>{schedule.startTime}</TableCell>
                   <TableCell>{schedule.endTime}</TableCell>
                   <TableCell>{schedule.room}</TableCell>
                   <TableCell>
                     <Button 
                       className="bg-[#282828] text-white hover:bg-[#282828] hover:opacity-90"
-                      onClick={() => handleScoreStartup(schedule.id)}
+                      onClick={() => handleScoreStartup(schedule.startupId)}
                     >
                       Score Startup
                     </Button>
@@ -132,9 +194,11 @@ const ScheduleTable = ({ scheduleData, setActiveTab }) => {
                 </TableRow>
               ))
             ) : (
-              <div className="flex justify-center items-center w-full">
-                <p className="text-muted-foreground">No schedules for today</p>
-              </div>
+              <TableRow>
+                <TableCell colSpan={5} className="text-center py-4">
+                  <p className="text-muted-foreground">No schedules for today</p>
+                </TableCell>
+              </TableRow>
             )}
           </TableBody>
         </Table>
@@ -218,30 +282,33 @@ PastEvaluations.propTypes = {
 // Rest of the Dashboard component remains the same...
 export default function Dashboard() {
   const navigate = useNavigate();
+  const { userId } = useSelector((state) => state.auth);
   const [activeTab, setActiveTab] = useState("dashboard");
-  const [scheduleData, setScheduleData] = useLocalStorageData("scheduleData", initialScheduleData);
+  const [scheduleData, setScheduleData] = useState([]);
   const [evaluationsData, setEvaluationsData] = useLocalStorageData("evaluationsData", initialEvaluationsData);
-
+  
   useEffect(() => {
     const loadData = async () => {
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      if (!localStorage.getItem("scheduleData")) {
-        setScheduleData(initialScheduleData);
-      }
-      if (!localStorage.getItem("evaluationsData")) {
-        setEvaluationsData(initialEvaluationsData);
+      try {
+        const response = await axiosInstance.get(`/api/v1/judges/${userId}/schedules`);
+
+        if (response.data) {
+          const transformedData = transformScheduleData(response.data);
+          setScheduleData(transformedData);
+        }
+      } catch (error) {
+        console.error(error);
+        setScheduleData([]);
       }
     };
 
     loadData();
-  }, [setEvaluationsData, setScheduleData]);
+  }, [setEvaluationsData]);
 
-  
   const handleScoreNextStartup = () => {
     if (scheduleData.length > 0) {
-      setActiveTab("scoring")
-      navigate(`/dashboard/score/${scheduleData[0].id}`);
+      setActiveTab("scoring");
+      navigate(`/dashboard/score/${scheduleData[0].startupId}`);
     }
   };
 
@@ -262,20 +329,20 @@ export default function Dashboard() {
             </TabsList>
             
             {activeTab === "dashboard" && (
-              <Button onClick={()=> handleScoreNextStartup()} variant="sm" className="bg-[#387C80] text-white hover:bg-[#387C80] hover:opacity-85">
+              <Button onClick={handleScoreNextStartup} variant="sm" className="bg-[#387C80] text-white hover:bg-[#387C80] hover:opacity-85">
                 Score next Startup
               </Button>
             )}
           </div>
 
           <TabsContent value="dashboard">
-          <CalendarSchedule 
+            <CalendarSchedule 
               scheduleData={scheduleData} 
               onScoreStartup={(id) => {
-              setActiveTab("scoring");
-              navigate(`/dashboard/score/${id}`);
-            }} 
-          />
+                setActiveTab("scoring");
+                navigate(`/dashboard/score/${id}`);
+              }} 
+            />
           </TabsContent>
 
           <TabsContent value="history">
