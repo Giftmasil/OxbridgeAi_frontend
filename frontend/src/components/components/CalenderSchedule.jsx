@@ -44,7 +44,7 @@ const CalendarSchedule = ({ scheduleData, onScoreStartup }) => {
   });
 
   return (
-    <Card className="p-4 bg-[#242424] w-full">
+    <Card className="p-4 bg-[#242424] w-full border-0">
       <div className="w-full">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-2xl font-semibold text-[#F8FAF7]">
