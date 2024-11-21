@@ -4,7 +4,7 @@ import PropTypes from 'prop-types';
 import Login from "./pages/login/Login";
 import Signup from "./pages/login/SignUp";
 import JudgesDashboard from "./pages/judges/Dashboard";
-import AdminDashboard from "./pages/admin/Dashboard";
+import AdminDashboard from "./pages/admin/DashBoard";
 import Score from "./pages/judges/Score";
 import "./App.css";
 import { useEffect } from "react";
