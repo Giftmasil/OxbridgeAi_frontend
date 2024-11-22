@@ -1,25 +1,59 @@
-import { Routes, Route, Navigate, HashRouter } from "react-router-dom";
+import { Routes, Route, Navigate, HashRouter, useLocation } from "react-router-dom";
 import { useDispatch, useSelector } from 'react-redux';
 import PropTypes from 'prop-types';
-import Login from "./pages/login/Login";
-import Signup from "./pages/login/SignUp";
+import JudgeLogin from "./pages/login/judge/Login";
+import AdminLogin from "./pages/login/admin/Login";
+import AdminSignup from "./pages/login/admin/SignUp";
 import JudgesDashboard from "./pages/judges/Dashboard";
 import AdminDashboard from "./pages/admin/DashBoard";
 import Score from "./pages/judges/Score";
 import "./App.css";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { checkAuthState } from "./redux/slices/AuthenticationSlice";
+import { Spinner } from "@chakra-ui/react";
 
-// Role-based route guard component
-const ProtectedRoute = ({ children, allowedRole, redirectPath = "/login" }) => {
+// Simple loading component - you can style this as needed
+const LoadingSpinner = () => (
+  <div style={{ 
+    display: 'flex', 
+    justifyContent: 'center', 
+    alignItems: 'center', 
+    height: '100vh',
+    backgroundColor: "black" 
+  }}>
+    <Spinner className="text-4xl" size='xl' color='blue.500' />
+  </div>
+);
+
+const ProtectedRoute = ({ children, allowedRole }) => {
   const { isAuthenticated, role } = useSelector((state) => state.auth);
+  const location = useLocation();
+  const [isChecking, setIsChecking] = useState(true);
+  const isScorePath = location.pathname.includes('/score/');
+
+  useEffect(() => {
+    // Add a small delay to ensure auth check completes
+    const timer = setTimeout(() => {
+      setIsChecking(false);
+    }, 10);
+
+    return () => clearTimeout(timer);
+  }, []);
+
+  if (isChecking) {
+    return <LoadingSpinner />;
+  }
 
   if (!isAuthenticated) {
-    return <Navigate to={redirectPath} replace />;
+    return <Navigate to={`/${allowedRole}/login`} replace />;
   }
 
   if (allowedRole && role !== allowedRole) {
-    return <Navigate to={`/${role === 'admin' ? 'admin' : ''}/dashboard`} replace />;
+    if (isScorePath) {
+      const scoreId = location.pathname.split('/').pop();
+      return <Navigate to={`/${role}/dashboard/score/${scoreId}`} replace />;
+    }
+    return <Navigate to={`/${role}/dashboard`} replace />;
   }
 
   return children;
@@ -27,9 +61,22 @@ const ProtectedRoute = ({ children, allowedRole, redirectPath = "/login" }) => {
 
 const PublicRoute = ({ children }) => {
   const { isAuthenticated, role } = useSelector((state) => state.auth);
+  const [isChecking, setIsChecking] = useState(true);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsChecking(false);
+    }, 500); // Adjust this delay as needed
+
+    return () => clearTimeout(timer);
+  }, []);
+
+  if (isChecking) {
+    return <LoadingSpinner />;
+  }
 
   if (isAuthenticated) {
-    return <Navigate to={role === 'admin' ? '/admin/dashboard' : '/dashboard'} replace />;
+    return <Navigate to={`/${role}/dashboard`} replace />;
   }
 
   return children;
@@ -37,8 +84,7 @@ const PublicRoute = ({ children }) => {
 
 ProtectedRoute.propTypes = {
   children: PropTypes.node.isRequired,
-  allowedRole: PropTypes.oneOf(['admin', 'judge']),
-  redirectPath: PropTypes.string
+  allowedRole: PropTypes.oneOf(['admin', 'judge']).isRequired
 };
 
 PublicRoute.propTypes = {
@@ -48,48 +94,49 @@ PublicRoute.propTypes = {
 function App() {
   const dispatch = useDispatch();
   const { isAuthenticated, role } = useSelector((state) => state.auth);
+  const [isInitializing, setIsInitializing] = useState(true);
 
   useEffect(() => {
-    dispatch(checkAuthState());
+    const initAuth = async () => {
+      await dispatch(checkAuthState());
+      // Add a small delay after the auth check
+      setTimeout(() => {
+        setIsInitializing(false);
+      }, 500); // Adjust this delay as needed
+    };
+    initAuth();
   }, [dispatch]);
+
+  if (isInitializing) {
+    return <LoadingSpinner />;
+  }
 
   return (
     <HashRouter>
       <Routes>
-        {/* Public Routes */}
+        {/* Routes remain the same */}
         <Route
           path="/"
           element={
             isAuthenticated ? (
-              <Navigate 
-                to={role === 'admin' ? '/admin/dashboard' : '/dashboard'} 
-                replace 
-              />
+              <Navigate to={`/${role}/dashboard`} replace />
             ) : (
-              <Navigate to="/login" replace />
+              <Navigate to="/judge/login" replace />
             )
-          }
-        />
-        <Route
-          path="/login"
-          element={
-            <PublicRoute>
-              <Login />
-            </PublicRoute>
-          }
-        />
-        <Route
-          path="/signup"
-          element={
-            <PublicRoute>
-              <Signup />
-            </PublicRoute>
           }
         />
 
         {/* Judge Routes */}
         <Route
-          path="/dashboard"
+          path="/judge/login"
+          element={
+            <PublicRoute>
+              <JudgeLogin />
+            </PublicRoute>
+          }
+        />
+        <Route
+          path="/judge/dashboard"
           element={
             <ProtectedRoute allowedRole="judge">
               <JudgesDashboard />
@@ -97,7 +144,7 @@ function App() {
           }
         />
         <Route
-          path="/dashboard/score/:id"
+          path="/judge/dashboard/score/:id"
           element={
             <ProtectedRoute allowedRole="judge">
               <Score />
@@ -106,6 +153,22 @@ function App() {
         />
 
         {/* Admin Routes */}
+        <Route
+          path="/admin/login"
+          element={
+            <PublicRoute>
+              <AdminLogin />
+            </PublicRoute>
+          }
+        />
+        <Route
+          path="/admin/signup"
+          element={
+            <PublicRoute>
+              <AdminSignup />
+            </PublicRoute>
+          }
+        />
         <Route
           path="/admin/dashboard"
           element={
@@ -121,8 +184,8 @@ function App() {
           element={
             <Navigate 
               to={isAuthenticated ? 
-                (role === 'admin' ? '/admin/dashboard' : '/dashboard') 
-                : '/login'} 
+                `/${role}/dashboard` 
+                : '/judge/login'} 
               replace 
             />
           } 

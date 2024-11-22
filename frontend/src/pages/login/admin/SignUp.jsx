@@ -12,8 +12,8 @@ import {
   useToast,
 } from "@chakra-ui/react";
 import { signup } from "@/redux/slices/AuthenticationSlice";
-import AuthLayout from "../../components/components/authLayout";
-import signUpImage from "../../assets/oxbridgeAI.jpeg";
+import AuthLayout from "../../../components/components/authLayout";
+import signUpImage from "../../../assets/oxbridgeAI.jpeg";
 
 const Signup = () => {
   const dispatch = useDispatch();
@@ -83,7 +83,7 @@ const Signup = () => {
         duration: 3000,
         isClosable: true,
       });
-      navigate("#/login")
+      navigate("/admin/login");
     } catch (err) {
       console.log(err)
       toast({
@@ -165,7 +165,7 @@ const Signup = () => {
           </Button>
           <Text fontSize="sm" textAlign="center">
             Already have an account?{" "}
-            <Link as={RouterLink} to="/login" color="blue.500">
+            <Link as={RouterLink} to="/admin/login" color="blue.500">
               Log in
             </Link>
           </Text>
