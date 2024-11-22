@@ -213,7 +213,7 @@ export default function Dashboard() {
   const handleScoreNextStartup = () => {
     if (scheduleData.length > 0) {
       setActiveTab("scoring");
-      navigate(`/dashboard/score/${scheduleData[0].startupId}`);
+      navigate(`/judge/dashboard/score/${scheduleData[0].startupId}`);
     }
   };
 
@@ -249,7 +249,7 @@ export default function Dashboard() {
               scheduleData={scheduleData} 
               onScoreStartup={(id) => {
                 setActiveTab("scoring");
-                navigate(`/dashboard/score/${id}`);
+                navigate(`/judge/dashboard/score/${id}`);
               }}
               selectedDate={selectedDate}
               onDateSelect={setSelectedDate}
