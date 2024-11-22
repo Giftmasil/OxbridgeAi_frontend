@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useDispatch, useSelector } from 'react-redux';
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import {
   FormControl,
   FormLabel,
@@ -9,15 +9,15 @@ import {
   Text,
   VStack,
   useToast,
-  Link,
 } from "@chakra-ui/react";
 import { login } from "@/redux/slices/AuthenticationSlice";
-import AuthLayout from "../../components/components/authLayout";
-import loginImage from "../../assets/oxbridgeAI.jpeg";
+import AuthLayout from "@/components/components/authLayout";
+import loginImage from "@/assets/oxbridgeAI.jpeg";
 
-const LoginPage = () => {
+const JudgeLogin = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
+  const location = useLocation();
   const toast = useToast();
   
   const [email, setEmail] = useState("");
@@ -38,17 +38,20 @@ const LoginPage = () => {
     }
 
     try {
-      const resultAction = await dispatch(login({ email, password })).unwrap();
+      await dispatch(login({ 
+        credentials: { email, password },
+        pathname: location.pathname 
+      })).unwrap();
       
       toast({
         title: "Login Successful",
-        description: `Welcome back!`,
+        description: "Welcome back!",
         status: "success",
         duration: 3000,
         isClosable: true,
       });
 
-      navigate(resultAction.role === "admin" ? "/admin/dashboard" : "/dashboard");
+      navigate("/judge/dashboard");
     } catch (err) {
       toast({
         title: "Login Failed",
@@ -62,7 +65,7 @@ const LoginPage = () => {
 
   const handleKeyDown = (event) => {
     if (event.key === 'Enter') {
-      event.preventDefault(); // Prevent default form submission
+      event.preventDefault();
       handleLogin();
     }
   };
@@ -71,7 +74,7 @@ const LoginPage = () => {
     <AuthLayout imageUrl={loginImage}>
       <VStack spacing={4} align="stretch">
         <Text fontSize="2xl" fontWeight="bold" textAlign="center">
-          Log In
+          Judge Login
         </Text>
         <FormControl isRequired>
           <FormLabel>Email</FormLabel>
@@ -109,15 +112,9 @@ const LoginPage = () => {
             {error}
           </Text>
         )}
-        <Text fontSize="sm" textAlign="center">
-          Don&apos;t have an account?{" "}
-          <Link color="blue.500" href="#/signup">
-            Sign up
-          </Link>
-        </Text>
       </VStack>
     </AuthLayout>
   );
 };
 
-export default LoginPage;
+export default JudgeLogin;

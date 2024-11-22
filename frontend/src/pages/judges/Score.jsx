@@ -16,6 +16,7 @@ import { useNavigate } from "react-router-dom";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faArrowLeft } from "@fortawesome/free-solid-svg-icons";
 import { Checkbox } from "@/components/ui/checkbox";
+import { useSelector } from "react-redux";
 
 // Define the initial state structure for a section
 const createInitialSectionState = (questions) => {
@@ -36,7 +37,7 @@ const createInitialFormState = (sections) => {
     overallFeedback: '',
     nominateNextRound: false,
     mentorStartup: false,
-    meetStartup: false
+    meetStartup: false,
   };
   sections.forEach(section => {
     initialState[section.id] = createInitialSectionState(section.questions);
@@ -240,6 +241,7 @@ export default function Score() {
     const [formState, setFormState] = useState(createInitialFormState(scoringSections));
     const [activeSection, setActiveSection] = useState(null);
     const toast = useToast();
+    const {userId} = useSelector(state => state.auth)
 
 
     useEffect(() => {
@@ -377,100 +379,105 @@ export default function Score() {
   };
 
   const handleSubmit = () => {
-      const invalidSections = validateForm();
-      
-      if (invalidSections.length > 0) {
-          const missingScoresSections = invalidSections
-              .filter(section => section.missingScores)
-              .map(section => section.title);
+    const invalidSections = validateForm();
+    
+    if (invalidSections.length > 0) {
+        const missingScoresSections = invalidSections
+            .filter(section => section.missingScores)
+            .map(section => section.title);
 
-          let description = "";
-          if (missingScoresSections.length > 0) {
-              description += `Complete all scores in: ${missingScoresSections.join(", ")}. `;
-          }
-          if (invalidSections.some(section => section.title === "Overall Feedback")) {
-              description += "Overall feedback is required.";
-          }
+        let description = "";
+        if (missingScoresSections.length > 0) {
+            description += `Complete all scores in: ${missingScoresSections.join(", ")}. `;
+        }
+        if (invalidSections.some(section => section.title === "Overall Feedback")) {
+            description += "Overall feedback is required.";
+        }
 
-          toast({
-              title: "Incomplete Evaluation",
-              description: description,
-              status: "error",
-              duration: 5000,
-              isClosable: true,
-              position: "top-right",
-              onCloseComplete: () => {
-                  const firstInvalidSection = invalidSections.find(section => section.id);
-                  if (firstInvalidSection) {
-                      setActiveSection(firstInvalidSection.id);
-                  }
-              }
-          });
-          return;
-      }
+        toast({
+            title: "Incomplete Evaluation",
+            description: description,
+            status: "error",
+            duration: 5000,
+            isClosable: true,
+            position: "top-right",
+            onCloseComplete: () => {
+                const firstInvalidSection = invalidSections.find(section => section.id);
+                if (firstInvalidSection) {
+                    setActiveSection(firstInvalidSection.id);
+                }
+            }
+        });
+        return;
+    }
 
-      // Calculate scores and prepare submission
-      const sectionScores = {};
-      let totalScore = 0;
-      
-      scoringSections.forEach(section => {
-          const sectionState = formState[section.id];
-          const isSkipped = sectionState.isSkipped;
-          
-          // Get scores based on skip status
-          const scores = isSkipped 
-              ? Array(Object.keys(sectionState.scores).length).fill(1)  // Use 1 for skipped sections
-              : Object.values(sectionState.scores).filter(score => score !== null);  // Only use non-null scores
-              
-          // Calculate average (like original logic)
-          const average = scores.length > 0 
-              ? scores.reduce((a, b) => a + b, 0) / Object.keys(sectionState.scores).length 
-              : 0;
-          
-          // Extract weight from section title
-          const weight = parseInt(section.title.match(/\((\d+)\/100%\)/)[1]);
-          
-          // Calculate percentage and weighted scores
-          const percentageScore = (average / 5) * 100;
-          const weightedScore = (percentageScore * weight) / 100;
-          
-          sectionScores[section.id] = {
-              rawAverage: average,
-              percentageScore: percentageScore,
-              weightedScore: weightedScore,
-              maxPoints: weight,
-              feedback: sectionState.feedback,
-              isSkipped: isSkipped,
-              individualScores: sectionState.scores,
-              totalPossibleQuestions: Object.keys(sectionState.scores).length,
-              answeredQuestions: scores.length
-          };
-          
-          totalScore += weightedScore;
-      });
+    // Calculate scores and prepare submission
+    const sectionScores = {};
+    let totalScore = 0;
+    
+    scoringSections.forEach(section => {
+        const sectionState = formState[section.id];
+        const isSkipped = sectionState.isSkipped;
+        
+        const scores = isSkipped 
+            ? Array(Object.keys(sectionState.scores).length).fill(1)
+            : Object.values(sectionState.scores).filter(score => score !== null);
+            
+        const average = scores.length > 0 
+            ? scores.reduce((a, b) => a + b, 0) / Object.keys(sectionState.scores).length 
+            : 0;
+        
+        const weight = parseInt(section.title.match(/\((\d+)\/100%\)/)[1]);
+        
+        const percentageScore = (average / 5) * 100;
+        const weightedScore = (percentageScore * weight) / 100;
+        
+        sectionScores[section.id] = {
+            rawAverage: average,
+            percentageScore: percentageScore,
+            weightedScore: weightedScore,
+            maxPoints: weight,
+            feedback: sectionState.feedback,
+            isSkipped: isSkipped,
+            individualScores: sectionState.scores,
+            totalPossibleQuestions: Object.keys(sectionState.scores).length,
+            answeredQuestions: scores.length
+        };
+        
+        totalScore += weightedScore;
+    });
 
-      const submissionData = {
+    // Create a cleaned version of the raw form data with only section data
+    const cleanedFormData = {};
+    Object.keys(formState).forEach(key => {
+        if (scoringSections.some(section => section.id === key)) {
+            cleanedFormData[key] = formState[key];
+        }
+    });
+
+    const submissionData = {
         timestamp: new Date().toISOString(),
         scoringTime: formatTime(time),
         totalScore: Math.round(totalScore * 100) / 100,
-        overallFeedback: formState.overallFeedback,
-        sectionScores,
-        nominateNextRound: formState.nominateNextRound,
-        mentorStartup: formState.mentorStartup,
         meetStartup: formState.meetStartup,
-        rawFormData: formState
+        mentorStartup: formState.mentorStartup,
+        nominateNextRound: formState.nominateNextRound,
+        overallFeedback: formState.overallFeedback,
+        userId: userId,
+        sectionScores,
+        rawFormData: cleanedFormData
     };
 
-      console.log('Submission Data:', submissionData);
-      
-      toast({
-          title: "Evaluation Submitted",
-          description: `Total Score: ${submissionData.totalScore}%`,
-          status: "success",
-          duration: 3000,
-          isClosable: true,
-          position: "top-right",
-      });
+    console.log('Submission Data:', submissionData);
+    
+    toast({
+        title: "Evaluation Submitted",
+        description: `Total Score: ${submissionData.totalScore}%`,
+        status: "success",
+        duration: 3000,
+        isClosable: true,
+        position: "top-right",
+    });
   };
 
   const handleNominationToggle = () => {

@@ -24,7 +24,7 @@ import {
   
     const handleLogout = () => {
       dispatch(logout());
-      navigate("/login");
+      navigate("/judge/login");
     };
   
     return (
@@ -32,7 +32,7 @@ import {
         <Flex alignItems="center">
           {/* Left: Logo */}
           <Box>
-            <Link to="/dashboard">
+            <Link to="/judge/dashboard">
               <img 
                 src={logo} 
                 alt="Company Logo" 
